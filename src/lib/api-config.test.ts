@@ -31,4 +31,16 @@ describe('getApiBaseUrl', () => {
     process.env[ENV_KEY] = '  https://api.example.com/ ';
     expect(getApiBaseUrl()).toBe('https://api.example.com');
   });
+
+  it('prepends https:// when only a hostname is given', () => {
+    process.env[ENV_KEY] = 'backend-production-d91c.up.railway.app';
+    expect(getApiBaseUrl()).toBe(
+      'https://backend-production-d91c.up.railway.app',
+    );
+  });
+
+  it('keeps same-origin relative paths', () => {
+    process.env[ENV_KEY] = '/api';
+    expect(getApiBaseUrl()).toBe('/api');
+  });
 });
