@@ -29,6 +29,7 @@ function NewAiRecipeInner() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [upgradeMode, setUpgradeMode] = useState(false);
+  const [freeAiRemaining, setFreeAiRemaining] = useState<number | null>(null);
   const [showPremiumSuccess, setShowPremiumSuccess] = useState(false);
   const [showCancelled, setShowCancelled] = useState(false);
   const [premiumAccessLoaded, setPremiumAccessLoaded] = useState(false);
@@ -48,6 +49,7 @@ function NewAiRecipeInner() {
     if (!isLoaded) return;
     if (!isSignedIn) {
       setUpgradeMode(false);
+      setFreeAiRemaining(null);
       setPremiumAccessLoaded(true);
       return;
     }
@@ -60,15 +62,26 @@ function NewAiRecipeInner() {
           getToken,
         );
         const body = (await res.json().catch(() => null)) as
-          | { isPremium?: boolean }
+          | {
+              isPremium?: boolean;
+              canGenerateAiRecipe?: boolean;
+              freeAiGenerationsRemaining?: number | null;
+            }
           | null;
         if (res.ok) {
-          setUpgradeMode(!Boolean(body?.isPremium));
+          setUpgradeMode(!Boolean(body?.canGenerateAiRecipe));
+          setFreeAiRemaining(
+            typeof body?.freeAiGenerationsRemaining === "number"
+              ? body.freeAiGenerationsRemaining
+              : null,
+          );
         } else {
           setUpgradeMode(false);
+          setFreeAiRemaining(null);
         }
       } catch {
         setUpgradeMode(false);
+        setFreeAiRemaining(null);
       } finally {
         setPremiumAccessLoaded(true);
       }
@@ -180,6 +193,7 @@ function NewAiRecipeInner() {
         );
         if (msg === "Upgrade to premium") {
           setUpgradeMode(true);
+          setFreeAiRemaining(0);
         }
         setError(msg);
         return;
@@ -236,7 +250,8 @@ function NewAiRecipeInner() {
         <div className="mb-6 rounded-xl border border-border bg-card px-6 py-5 shadow-sm">
           <p className="text-sm font-medium text-foreground">Upgrade to Premium</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            AI recipe generation is available only for premium users.
+            You have used your free AI recipe. Upgrade for unlimited AI
+            generations.
           </p>
           <Button
             type="button"
@@ -247,6 +262,12 @@ function NewAiRecipeInner() {
             {checkoutLoading ? "Opening checkout…" : "Buy Premium"}
           </Button>
         </div>
+      ) : freeAiRemaining !== null && freeAiRemaining > 0 ? (
+        <AlertMessage variant="muted" className="mb-6">
+          You have {freeAiRemaining} free AI recipe
+          {freeAiRemaining === 1 ? "" : "s"}. Upgrade to Premium for unlimited
+          access.
+        </AlertMessage>
       ) : null}
 
       {!isLoaded || !premiumAccessLoaded ? (
@@ -254,7 +275,7 @@ function NewAiRecipeInner() {
       ) : !isSignedIn ? (
         <div className="rounded-xl border border-dashed border-border bg-muted/30 px-6 py-12 text-center">
           <p className="text-muted-foreground">
-            Sign in with a premium account to use AI recipe generation.
+            Sign in to generate a recipe with AI (one free try for new accounts).
           </p>
           <Link href="/sign-in" className="mt-4 inline-flex">
             <Button type="button">Sign in</Button>
